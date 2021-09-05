@@ -3,9 +3,9 @@ import cwt
 import base45
 import datetime
 import argparse
+import cbor2
 
 HEADER_MAGIC = 'HC1:'
-KID = "" #Have to obtain from somewhere...
 
 parser = argparse.ArgumentParser("Malaysian Vax QR Decoder")
 parser.add_argument("--qrtext", help="The decoded QR in text form (qr.txt)")
@@ -13,9 +13,6 @@ parser.add_argument("--verbose", default="", help="Verbose mode (y/n)")
 args = parser.parse_args()
 
 # Public key have to obtain from somewhere...
-with open("pubkey.pem") as f:
-    pem = f.read()
-    public_key = cwt.COSEKey.from_pem(pem, kid=KID)
 
 with open(args.qrtext) as f:
     qr_data = f.read()
@@ -28,11 +25,21 @@ qr_data = qr_data[len(HEADER_MAGIC):]
 qr_data = base45.b45decode(qr_data)
 
 decompressed = zlib.decompress(qr_data)
+
+#Get the KID value
+raw = cbor2.loads(decompressed)
+signature_kid = raw.value[0][5:]
+
+with open("pubkey.pem") as f:
+    pem = f.read()
+    public_key = cwt.COSEKey.from_pem(pem, kid=signature_kid)
+
 try:
     cwt_data = cwt.decode(decompressed, public_key)
 
-except VerifyError:
+except:
     print(" --- ERROR! --- Signature is INVALID!")
+    exit()
 
 print("++ Certificate signature valid :) ++")
 print("")

@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 cwt = "*"
 base45 = "*"
+cbor2 = "*"
 
 [dev-packages]
 
